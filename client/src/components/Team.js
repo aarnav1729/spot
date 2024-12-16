@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import Sidebar from "./Sidebar";
-import { Tree, TreeNode } from "react-organizational-chart";
 import axios from "axios";
 
 const Container = styled.div`
@@ -31,10 +30,10 @@ const Title = styled.h1`
 
 const ChartContainer = styled.div`
   display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
   justify-content: center;
-  align-items: center;
   padding: 40px;
-  overflow: visible;
 `;
 
 const TeamMemberCard = styled.div`
@@ -68,25 +67,8 @@ const TeamMemberDetails = styled.p`
 `;
 
 const Team = () => {
-  const [loggedInUser, setLoggedInUser] = useState(null); // Organizational chart data
-  const [loading, setLoading] = useState(true); // Loading state
-
-  // Recursive function to render the organizational chart
-  const renderTree = (node) => {
-    if (!node) return null; // Handle edge case where node is undefined or null
-    return (
-      <TreeNode
-        label={
-          <TeamMemberCard>
-            <TeamMemberName>{node.empName}</TeamMemberName>
-            <TeamMemberDetails>Employee ID: {node.empID}</TeamMemberDetails>
-          </TeamMemberCard>
-        }
-      >
-        {node.children.map((child) => renderTree(child))}
-      </TreeNode>
-    );
-  };
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -98,17 +80,15 @@ const Team = () => {
           return;
         }
 
-        // Fetch the organizational chart data
+        // Fetch the employees in the same department
         const response = await axios.get("http://localhost:5000/api/team-structure", {
           params: { empID: storedEmpID },
         });
-        
 
-        if (response.data && response.data.orgChart) {
-          setLoggedInUser(response.data.orgChart);
+        if (response.data && response.data.employees) {
+          setEmployees(response.data.employees);
         } else {
-          console.warn("No organizational chart data received");
-          setLoggedInUser(null);
+          console.warn("No employees data received");
         }
       } catch (error) {
         console.error("Error fetching team structure:", error);
@@ -132,35 +112,24 @@ const Team = () => {
   }
 
   return (
-    <div>
-      <Container>
-        <Sidebar activeTab="Team Structure" />
-        <Content>
-          <Title>Team Structure</Title>
-          <ChartContainer>
-            {loggedInUser ? (
-              <Tree
-                lineWidth={"3px"}
-                lineColor={"#ff7043"}
-                lineBorderRadius={"10px"}
-                label={
-                  <TeamMemberCard>
-                    <TeamMemberName>{loggedInUser.empName}</TeamMemberName>
-                    <TeamMemberDetails>
-                      Employee ID: {loggedInUser.empID}
-                    </TeamMemberDetails>
-                  </TeamMemberCard>
-                }
-              >
-                {loggedInUser.children.map((child) => renderTree(child))}
-              </Tree>
-            ) : (
-              <p>No team structure available.</p>
-            )}
-          </ChartContainer>
-        </Content>
-      </Container>
-    </div>
+    <Container>
+      <Sidebar activeTab="Team Structure" />
+      <Content>
+        <Title>Team Structure</Title>
+        <ChartContainer>
+          {employees.length > 0 ? (
+            employees.map((employee) => (
+              <TeamMemberCard key={employee.EmpID}>
+                <TeamMemberName>{employee.EmpName}</TeamMemberName>
+                <TeamMemberDetails>Employee ID: {employee.EmpID}</TeamMemberDetails>
+              </TeamMemberCard>
+            ))
+          ) : (
+            <p>No employees found in your department.</p>
+          )}
+        </ChartContainer>
+      </Content>
+    </Container>
   );
 };
 

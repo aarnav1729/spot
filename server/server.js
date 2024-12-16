@@ -1183,7 +1183,7 @@ app.get("/api/getHODForDept", async (req, res) => {
   }
 });
 
-// Endpoint to fetch logged-in user's team structure
+// Endpoint to fetch all employees in the logged-in user's department
 app.get("/api/team-structure", async (req, res) => {
   const { empID } = req.query;
 
@@ -1194,7 +1194,7 @@ app.get("/api/team-structure", async (req, res) => {
   try {
     // Fetch details of the logged-in user
     const userQuery = await sql.query`
-      SELECT EmpID, EmpName, Dept, ManagerID FROM EMP WHERE EmpID = ${empID}
+      SELECT EmpID, EmpName, Dept FROM EMP WHERE EmpID = ${empID}
     `;
     if (userQuery.recordset.length === 0) {
       return res.status(404).json({ message: "User not found" });
@@ -1203,31 +1203,14 @@ app.get("/api/team-structure", async (req, res) => {
 
     // Fetch all employees in the same department
     const departmentQuery = await sql.query`
-      SELECT EmpID, EmpName, ManagerID 
+      SELECT EmpID, EmpName 
       FROM EMP 
       WHERE Dept = ${loggedInUser.Dept}
+      ORDER BY EmpName
     `;
     const employees = departmentQuery.recordset;
 
-    // Build the organizational chart structure
-    const buildTree = (employees, managerID) => {
-      return employees
-        .filter((emp) => emp.ManagerID === managerID)
-        .map((emp) => ({
-          empID: emp.EmpID,
-          empName: emp.EmpName,
-          children: buildTree(employees, emp.EmpID),
-        }));
-    };
-
-    // Create the hierarchy starting from the user's manager
-    const orgChart = {
-      empID: loggedInUser.EmpID,
-      empName: loggedInUser.EmpName,
-      children: buildTree(employees, loggedInUser.EmpID),
-    };
-
-    res.status(200).json({ orgChart });
+    res.status(200).json({ employees });
   } catch (error) {
     console.error("Error fetching team structure:", error);
     res.status(500).json({ message: "Server error" });

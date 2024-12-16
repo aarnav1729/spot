@@ -4,6 +4,7 @@ import LeftLogo from '../assets/logo-left.png';
 import RightLogo from '../assets/logo-right.png';
 
 const HeaderContainer = styled.div`
+  
   background-color: black;
   display: flex;
   justify-content: space-between;

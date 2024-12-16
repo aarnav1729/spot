@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Form, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import axios from "axios";
 
@@ -20,25 +20,28 @@ const Content = styled.div`
 
 const TicketDetails = styled.div`
   background-color: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   padding: 40px;
-  padding-right: ${({ isHistoryVisible }) => (isHistoryVisible ? '440px' : '80px')};
+  padding-right: ${({ isHistoryVisible }) =>
+    isHistoryVisible ? "440px" : "80px"};
   box-sizing: border-box;
   transition: box-shadow 0.3s ease, padding-right 0.3s ease;
 
   &:hover {
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
   }
 `;
 
 const Title = styled.h1`
-  color: #333;
-  font-size: 28px;
-  margin-bottom: 25px;
-  font-weight: 600;
+  color: #222;
+  font-size: 32px;
+  margin-bottom: 30px;
+  font-weight: 700;
   text-align: left;
-  letter-spacing: 0.5px;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 10px;
+  letter-spacing: 0.7px;
 `;
 
 const BackButton = styled.button`
@@ -63,15 +66,24 @@ const BackButton = styled.button`
 const DetailRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   font-size: 16px;
-  color: #444;
-  line-height: 1.5;
+  color: #555;
+  line-height: 1.6;
 
   strong {
-    width: 200px;
-    color: #555;
+    width: 220px;
+    color: #333;
     font-weight: 600;
+  }
+
+  span {
+    flex: 1;
+    padding: 10px 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    font-size: 15px;
+    color: #444;
   }
 `;
 
@@ -79,57 +91,60 @@ const FormRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 `;
 
 const Label = styled.label`
-  width: 200px;
-  font-weight: bold;
+  width: 220px;
+  font-weight: 600;
   color: #333;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   font-size: 15px;
 `;
 
 const Input = styled.input`
   flex: 1;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 14px;
-  transition: border-color 0.3s ease;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 
   &:focus {
     border-color: #0f6ab0;
+    box-shadow: 0 0 6px rgba(15, 106, 176, 0.2);
     outline: none;
   }
 `;
 
 const Select = styled.select`
   flex: 1;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 14px;
-  transition: border-color 0.3s ease;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 
   &:focus {
     border-color: #0f6ab0;
+    box-shadow: 0 0 6px rgba(15, 106, 176, 0.2);
     outline: none;
   }
 `;
 
 const TextArea = styled.textarea`
   flex: 1;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ccc;
-  border-radius: 5px;
-  height: 100px;
+  border-radius: 8px;
+  height: 120px;
   resize: vertical;
-  font-size: 14px;
-  transition: border-color 0.3s ease;
+  font-size: 15px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 
   &:focus {
     border-color: #0f6ab0;
+    box-shadow: 0 0 6px rgba(15, 106, 176, 0.2);
     outline: none;
   }
 `;
@@ -164,7 +179,8 @@ const HistoryPanel = styled.div`
   box-sizing: border-box;
   overflow-y: auto;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  transform: ${({ visible }) => (visible ? 'translateX(0)' : 'translateX(380px)')};
+  transform: ${({ visible }) =>
+    visible ? "translateX(0)" : "translateX(380px)"};
   z-index: 10;
 
   &:hover {
@@ -209,7 +225,7 @@ const HistoryItem = styled.div`
 const HistoryToggleButton = styled.button`
   position: absolute;
   top: 40px;
-  right: ${({ visible }) => (visible ? '370px' : '40px')};
+  right: ${({ visible }) => (visible ? "370px" : "40px")};
   background-color: #0f6ab0;
   color: #fff;
   border: none;
@@ -218,7 +234,7 @@ const HistoryToggleButton = styled.button`
   cursor: pointer;
   font-size: 14px;
   transition: right 0.3s ease, background-color 0.3s ease;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 
   &:hover {
     background-color: #0d5a8e;
@@ -366,7 +382,10 @@ const STicket = () => {
         Comment: remarks,
       };
 
-      await axios.post("http://localhost:5000/api/update-ticket", updatedTicketData);
+      await axios.post(
+        "http://localhost:5000/api/update-ticket",
+        updatedTicketData
+      );
       navigate("/profile");
     } catch (error) {
       console.error("Error updating ticket:", error.response || error);
@@ -409,9 +428,77 @@ const STicket = () => {
                 <option value="In-Progress">In-Progress</option>
                 <option value="Overdue">Overdue</option>
                 <option value="Resolved">Resolved</option>
-                <option value="Closed">Closed</option>
               </Select>
             </FormRow>
+
+            {updatedStatus === "Resolved" && (
+              <div style={{ marginTop: "20px", marginBottom: "20px" }}>
+                <h3>
+                  This ticket has been resolved. Please accept or reject the
+                  resolution:
+                </h3>
+                <button
+                  style={{
+                    marginRight: "10px",
+                    backgroundColor: "#28a745",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "5px",
+                    padding: "8px 15px",
+                    cursor: "pointer",
+                  }}
+                  onClick={async () => {
+                    try {
+                      await axios.post(
+                        "http://localhost:5000/api/tickets/respond-resolution",
+                        {
+                          ticketNumber: ticket.Ticket_Number,
+                          action: "accept",
+                          userID: emailUser,
+                        }
+                      );
+                      alert("Resolution accepted. Ticket will be closed.");
+                      navigate("/profile");
+                    } catch (error) {
+                      console.error("Error accepting resolution:", error);
+                    }
+                  }}
+                >
+                  Accept Resolution
+                </button>
+                <button
+                  style={{
+                    marginLeft: "10px",
+                    backgroundColor: "#dc3545",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "5px",
+                    padding: "8px 15px",
+                    cursor: "pointer",
+                  }}
+                  onClick={async () => {
+                    try {
+                      await axios.post(
+                        "http://localhost:5000/api/tickets/respond-resolution",
+                        {
+                          ticketNumber: ticket.Ticket_Number,
+                          action: "reject",
+                          userID: emailUser,
+                        }
+                      );
+                      alert(
+                        "Resolution rejected. Ticket will be marked as In-Progress."
+                      );
+                      navigate("/profile");
+                    } catch (error) {
+                      console.error("Error rejecting resolution:", error);
+                    }
+                  }}
+                >
+                  Reject Resolution
+                </button>
+              </div>
+            )}
 
             <FormRow>
               <Label>Assignee Department:</Label>
@@ -491,10 +578,7 @@ const STicket = () => {
               />
             </FormRow>
 
-            <SubmitButton
-              type="button"
-              onClick={(e) => handleUpdateTicket(e)}
-            >
+            <SubmitButton type="button" onClick={(e) => handleUpdateTicket(e)}>
               Submit
             </SubmitButton>
           </TicketDetails>
@@ -523,7 +607,8 @@ const STicket = () => {
                   {item.Comment ? `Comment: ${item.Comment}` : ""}
                 </div>
                 <div>
-                  <strong>Timestamp:</strong> {new Date(item.Timestamp).toLocaleString()}
+                  <strong>Timestamp:</strong>{" "}
+                  {new Date(item.Timestamp).toLocaleString()}
                 </div>
               </HistoryItem>
             ))}

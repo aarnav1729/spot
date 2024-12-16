@@ -185,7 +185,7 @@ const PriorityStar = styled.span`
 
 const CreateTicketButton = styled.button`
   position: absolute;
-  top: 20px;
+  top: 90px; /* Adjusted to ensure it is below the sticky header */
   right: 20px;
   background-color: #61b847;
   color: #ffffff;

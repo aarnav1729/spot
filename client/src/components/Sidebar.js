@@ -17,7 +17,8 @@ import axios from "axios";
 
 const SidebarContainer = styled.div`
   width: ${(props) => (props.collapsed ? "60px" : "250px")};
-  background-color: black;
+
+  background-color: #bebebe;
   color: #ffffff;
   display: flex;
   flex-direction: column;
@@ -40,7 +41,7 @@ const SidebarItem = styled.div`
   font-size: 18px;
   cursor: pointer;
   background-color: ${(props) => (props.active ? "#FFFFFF" : "transparent")};
-  color: ${(props) => (props.active ? "black" : "#FFFFFF")};
+  color: ${(props) => (props.active ? "black" : "black")};
   padding: 10px;
   border-radius: 5px;
   display: flex;
@@ -80,6 +81,9 @@ const Sidebar = ({ activeTab }) => {
   const storedUsername = localStorage.getItem("username");
   const fullEmailUser = `${storedUsername}@premierenergies.com`;
 
+  const empID = localStorage.getItem("empID");
+  const [isHOD, setIsHOD] = useState(false);
+
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
@@ -98,6 +102,55 @@ const Sidebar = ({ activeTab }) => {
 
     fetchUnreadCount();
   }, []);
+
+  // NEW: Check if the user is an HOD
+  useEffect(() => {
+    const checkHOD = async () => {
+      if (empID) {
+        try {
+          const response = await axios.get("http://localhost:5000/api/isHOD", {
+            params: { empID: empID },
+          });
+          setIsHOD(response.data.isHOD);
+        } catch (error) {
+          console.error("Error checking HOD status:", error);
+        }
+      }
+    };
+    checkHOD();
+  }, [empID]);
+
+  // Fetch the user's department from the EMP table and then the HODID from the HOD table
+  useEffect(() => {
+    const fetchDeptAndHODID = async () => {
+      if (storedUsername && empID) {
+        try {
+          // Fetch user details to get department
+          const userResponse = await axios.get("http://localhost:5000/api/user", {
+            params: { email: storedUsername },
+          });
+          
+          const userDept = userResponse.data.Dept;
+
+          // Now fetch HODID for this department from HOD table
+          const hodResponse = await axios.get("http://localhost:5000/api/getHODForDept", {
+            params: { dept: userDept },
+          });
+          
+          const hodID = hodResponse.data.HODID;
+
+          // Log EmpID and HODID for verification
+          console.log("Logged in EmpID:", empID);
+          console.log("User's Department:", userDept);
+          console.log("HODID for user's department:", hodID);
+        } catch (error) {
+          console.error("Error fetching department or HODID:", error);
+        }
+      }
+    };
+
+    fetchDeptAndHODID();
+  }, [storedUsername, empID]);
 
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
@@ -123,14 +176,16 @@ const Sidebar = ({ activeTab }) => {
           <SidebarItemText collapsed={collapsed}>User Profile</SidebarItemText>
         </SidebarItem>
 
-        <SidebarItem
-          active={activeTab === "Department"}
-          collapsed={collapsed}
-          onClick={() => handleNavigation("/department")}
-        >
-          <FaBuilding />
-          <SidebarItemText collapsed={collapsed}>Department</SidebarItemText>
-        </SidebarItem>
+        {isHOD && (
+          <SidebarItem
+            active={activeTab === "Department"}
+            collapsed={collapsed}
+            onClick={() => handleNavigation("/department")}
+          >
+            <FaBuilding />
+            <SidebarItemText collapsed={collapsed}>Department</SidebarItemText>
+          </SidebarItem>
+        )}
 
         <SidebarItem
           active={activeTab === "Dashboard"}

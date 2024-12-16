@@ -1071,6 +1071,43 @@ app.get("/api/ticket-history", async (req, res) => {
   }
 });
 
+// Endpoint to check if a user is an HOD
+app.get("/api/isHOD", async (req, res) => {
+  const { empID } = req.query;
+
+  try {
+    const result = await sql.query`
+      SELECT TOP 1 1 FROM HOD WHERE HODID = ${empID}
+    `;
+
+    if (result.recordset.length > 0) {
+      res.status(200).json({ isHOD: true });
+    } else {
+      res.status(200).json({ isHOD: false });
+    }
+  } catch (error) {
+    console.error("Error checking HOD:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.get("/api/getHODForDept", async (req, res) => {
+  const { dept } = req.query;
+  try {
+    const result = await sql.query`
+      SELECT HODID FROM HOD WHERE Dept = ${dept}
+    `;
+    if (result.recordset.length > 0) {
+      res.status(200).json({ HODID: result.recordset[0].HODID });
+    } else {
+      res.status(200).json({ HODID: null });
+    }
+  } catch (error) {
+    console.error("Error fetching HODID for department:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // Start the server
 const startServer = async () => {
   try {

@@ -9,8 +9,8 @@ import { useNavigate } from "react-router-dom";
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 70px); /* Adjusting for header height */
-  background-color: #ffffff;
+  min-height: calc(100vh - 70px); /* Adjust for header height */
+  background: linear-gradient(to bottom right, #f0f4f8, #d9e2ec);
 
   @media (min-width: 768px) {
     flex-direction: row;
@@ -32,20 +32,26 @@ const TitleInput = styled.input`
 
 const Content = styled.div`
   flex: 1;
-  padding: 20px;
+  padding: 40px;
   box-sizing: border-box;
   width: 100%;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 
   @media (min-width: 768px) {
     width: auto;
+    margin: 40px;
   }
 `;
 
 const Title = styled.h1`
   text-align: center;
-  font-size: 32px;
-  color: #000;
+  font-size: 36px;
+  color: #0f6ab0;
   margin-bottom: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
 
   @media (max-width: 768px) {
     font-size: 28px;
@@ -55,21 +61,24 @@ const Title = styled.h1`
 const Subtitle = styled.p`
   text-align: center;
   font-size: 16px;
-  color: #333;
-  margin-bottom: 20px;
+  color: #555;
+  margin-bottom: 30px;
+  font-weight: 500;
 `;
 
 const Form = styled.form`
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 20px;
 `;
 
 const InputRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -78,28 +87,34 @@ const InputRow = styled.div`
 `;
 
 const Input = styled.input`
-  margin: 10px;
-  padding: 10px;
+  padding: 15px;
   font-size: 16px;
   border: 1px solid #ccc;
-  border-radius: 5px;
-  width: 200px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 250px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 
-  @media (max-width: 768px) {
-    width: 80%;
+  &:focus {
+    border-color: #0f6ab0;
+    box-shadow: 0 0 6px rgba(15, 106, 176, 0.2);
+    outline: none;
   }
 `;
 
 const Select = styled.select`
-  margin: 10px;
-  padding: 10px;
+  padding: 15px;
   font-size: 16px;
   border: 1px solid #ccc;
-  border-radius: 5px;
-  width: 210px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 260px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 
-  @media (max-width: 768px) {
-    width: 85%;
+  &:focus {
+    border-color: #0f6ab0;
+    box-shadow: 0 0 6px rgba(15, 106, 176, 0.2);
+    outline: none;
   }
 `;
 
@@ -116,13 +131,20 @@ const TextArea = styled.textarea`
 `;
 
 const SubmitButton = styled.button`
-  background-color: #61b847;
+  background-color: #0f6ab0;
   color: #ffffff;
   border: none;
   border-radius: 25px;
   padding: 15px 30px;
   font-size: 18px;
   cursor: pointer;
+  margin-top: 20px;
+`;
+
+const Message = styled.p`
+  color: ${({ success }) => (success ? "green" : "red")};
+  text-align: center;
+  font-size: 16px;
   margin-top: 20px;
 `;
 

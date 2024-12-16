@@ -33,6 +33,11 @@ const Content = styled.div`
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;
 
+const SearchIcon = styled(FaSearch)`
+  margin-right: 10px;
+  color: #0f6ab0;
+`;
+
 const WelcomeText = styled.h1`
   color: #333;
   font-size: 28px;
@@ -50,11 +55,6 @@ const ButtonGroup = styled.div`
   display: flex;
   align-items: center;
   margin-bottom: 20px;
-`;
-
-const SearchIcon = styled(FaSearch)`
-  margin-right: 10px;
-  color: #0f6ab0;
 `;
 
 const Button = styled.button`
@@ -119,6 +119,25 @@ const StatusCard = styled.div`
   }
 `;
 
+const SearchBar = styled.div`
+  display: flex;
+  align-items: center;
+  background-color: #f0f0f0;
+  border-radius: 25px;
+  padding: 10px 20px;
+  width: 25%;
+  margin-right: 20px;
+`;
+
+const SearchInput = styled.input`
+  border: none;
+  background: transparent;
+  outline: none;
+  flex: 1;
+  font-size: 16px;
+  color: #0f6ab0;
+`;
+
 const StatusTitle = styled.h3`
   font-size: 16px;
   margin-bottom: 10px;
@@ -173,6 +192,8 @@ const DepartmentDashboard = () => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState({});
   const [tickets, setTickets] = useState([]);
+  const [filteredTickets, setFilteredTickets] = useState([]); // To store filtered tickets
+  const [searchTerm, setSearchTerm] = useState(""); // To store search input
   const [statusCounts, setStatusCounts] = useState({});
   const [viewMode, setViewMode] = useState("assignedByDept");
   const [statusDataState, setStatusDataState] = useState([]);
@@ -212,6 +233,8 @@ const DepartmentDashboard = () => {
         },
       });
       setTickets(response.data.tickets);
+      setFilteredTickets(response.data.tickets);
+
       setStatusCounts(response.data.statusCounts);
 
       // Calculate percentage changes
@@ -306,10 +329,37 @@ const DepartmentDashboard = () => {
     fetchTickets(mode, userData.Dept);
   };
 
+  useEffect(() => {
+    setFilteredTickets(tickets); // Sync filteredTickets with tickets
+  }, [tickets]);
+
+  const handleSearch = (e) => {
+    const term = e.target.value.toLowerCase();
+    setSearchTerm(term);
+
+    if (!term) {
+      setFilteredTickets(tickets); // Reset to all tickets when search is cleared
+      return;
+    }
+
+    const filtered = tickets.filter((ticket) =>
+      Object.values(ticket).some((value) => {
+        if (value === null || value === undefined) return false; // Skip null/undefined
+        if (typeof value !== "string" && typeof value !== "number")
+          return false; // Skip non-string/number
+        return value.toString().toLowerCase().includes(term);
+      })
+    );
+
+    setFilteredTickets(filtered);
+  };
+
   const handleActionClick = (ticket) => {
     const storedUsername = localStorage.getItem("username");
     const fullEmailUser = `${storedUsername}@premierenergies.com`;
-    navigate(`/ticket/${ticket.Ticket_Number}`, { state: { ticket, emailUser: fullEmailUser } });
+    navigate(`/ticket/${ticket.Ticket_Number}`, {
+      state: { ticket, emailUser: fullEmailUser },
+    });
   };
 
   return (
@@ -355,18 +405,26 @@ const DepartmentDashboard = () => {
           </StatusCardGroup>
 
           <ButtonGroup>
-            <SearchIcon />
+            <SearchBar>
+              <SearchIcon />
+              <SearchInput
+                type="text"
+                placeholder="Search Department Tickets"
+                value={searchTerm}
+                onChange={handleSearch}
+              />
+            </SearchBar>
             <Button
               active={viewMode === "assignedByDept"}
               onClick={() => handleViewModeChange("assignedByDept")}
             >
-              Assigned by Department
+              Assigned by Me
             </Button>
             <Button
               active={viewMode === "assignedToDept"}
               onClick={() => handleViewModeChange("assignedToDept")}
             >
-              Assigned to Department
+              Assigned to Me
             </Button>
           </ButtonGroup>
 
@@ -378,7 +436,9 @@ const DepartmentDashboard = () => {
                 <TableHeader>Ticket Title</TableHeader>
                 <TableHeader>Priority</TableHeader>
                 <TableHeader>
-                  {viewMode === "assignedToDept" ? "Assigned By" : "Assigned To"}
+                  {viewMode === "assignedToDept"
+                    ? "Assigned By"
+                    : "Assigned To"}
                 </TableHeader>
                 <TableHeader>Deadline</TableHeader>
                 <TableHeader>Status</TableHeader>
@@ -386,7 +446,7 @@ const DepartmentDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {tickets.map((ticket) => (
+              {filteredTickets.map((ticket) => (
                 <tr key={ticket.Ticket_Number}>
                   <TableData>{ticket.Ticket_Number}</TableData>
                   <TableData>

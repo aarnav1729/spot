@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
-import styled from 'styled-components';
-import Sidebar from './Sidebar';
-import { useNavigate } from 'react-router-dom';
-import { Tree, TreeNode } from 'react-organizational-chart';
+import styled from "styled-components";
+import Sidebar from "./Sidebar";
+import { Tree, TreeNode } from "react-organizational-chart";
+import axios from "axios";
 
 const Container = styled.div`
   display: flex;
-  min-height: calc(100vh - 70px); /* Adjusting for header height */
-  background-color: #E8F5E9;
+  min-height: calc(100vh - 70px);
+  background-color: #e8f5e9;
   overflow: auto;
 `;
 
@@ -16,13 +16,13 @@ const Content = styled.div`
   padding: 20px;
   box-sizing: border-box;
   position: relative;
-  background: linear-gradient(135deg, #F3F9FD 0%, #FFFFFF 100%);
+  background: linear-gradient(135deg, #f3f9fd 0%, #ffffff 100%);
   border-radius: 15px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
 `;
 
 const Title = styled.h1`
-  color: #0F6AB0;
+  color: #0f6ab0;
   font-size: 36px;
   margin-bottom: 30px;
   text-align: center;
@@ -38,8 +38,8 @@ const ChartContainer = styled.div`
 `;
 
 const TeamMemberCard = styled.div`
-  background: linear-gradient(135deg, #FFEBEE 0%, #E3F2FD 100%);
-  border: 1px solid #E0E0E0;
+  background: linear-gradient(135deg, #ffebee 0%, #e3f2fd 100%);
+  border: 1px solid #e0e0e0;
   border-radius: 10px;
   padding: 25px;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
@@ -54,63 +54,82 @@ const TeamMemberCard = styled.div`
 `;
 
 const TeamMemberName = styled.h3`
-  color: #D32F2F;
+  color: #d32f2f;
   font-size: 22px;
   margin-bottom: 15px;
   font-weight: bold;
 `;
 
 const TeamMemberDetails = styled.p`
-  color: #388E3C;
+  color: #388e3c;
   font-size: 16px;
   margin-bottom: 10px;
   font-weight: 500;
 `;
 
 const Team = () => {
-  const [teamMembers, setTeamMembers] = useState([]);
-  const navigate = useNavigate();
+  const [loggedInUser, setLoggedInUser] = useState(null); // Organizational chart data
+  const [loading, setLoading] = useState(true); // Loading state
 
-  useEffect(() => {
-    // Fetch team members based on the department of the logged-in user.
-    // For now, we use mock data.
-    const fetchTeamMembers = async () => {
-      const department = localStorage.getItem('department'); // Assuming department info is stored in local storage
-      // Mock data for demonstration purposes.
-      const members = [
-        { name: 'Ashwin Lakra', role: 'Team Lead', id: 'IT001', department: department, reportsTo: null, openTickets: 5 },
-        { name: 'Madhur K', role: 'Senior Backend Developer', id: 'IT002', department: department, reportsTo: 'Ashwin Lakra', openTickets: 3 },
-        { name: 'Nilesh G', role: 'Frontend Developer', id: 'IT003', department: department, reportsTo: 'Ashwin Lakra', openTickets: 2 },
-        { name: 'Meghana T', role: 'UI/UX Designer', id: 'IT004', department: department, reportsTo: 'Madhur K', openTickets: 1 },
-      ];
-      setTeamMembers(members);
-    };
-
-    fetchTeamMembers();
-  }, []);
-
-  // Utility function to find subordinates for a given team member
-  const findSubordinates = (name) => {
-    return teamMembers.filter(member => member.reportsTo === name);
+  // Recursive function to render the organizational chart
+  const renderTree = (node) => {
+    if (!node) return null; // Handle edge case where node is undefined or null
+    return (
+      <TreeNode
+        label={
+          <TeamMemberCard>
+            <TeamMemberName>{node.empName}</TeamMemberName>
+            <TeamMemberDetails>Employee ID: {node.empID}</TeamMemberDetails>
+          </TeamMemberCard>
+        }
+      >
+        {node.children.map((child) => renderTree(child))}
+      </TreeNode>
+    );
   };
 
-  // Recursive function to generate TreeNodes
-  const renderTreeNode = (member) => (
-    <TreeNode
-      label={
-        <TeamMemberCard>
-          <TeamMemberName>{member.name}</TeamMemberName>
-          <TeamMemberDetails>Role: {member.role}</TeamMemberDetails>
-          <TeamMemberDetails>Employee ID: {member.id}</TeamMemberDetails>
-          <TeamMemberDetails>Open Tickets: {member.openTickets}</TeamMemberDetails>
-        </TeamMemberCard>
-      }
-    >
-      {findSubordinates(member.name).map(subordinate => renderTreeNode(subordinate))}
-    </TreeNode>
-  );
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const storedEmpID = localStorage.getItem("empID");
+        if (!storedEmpID) {
+          console.error("Employee ID missing in local storage");
+          setLoading(false);
+          return;
+        }
 
-  const teamLead = teamMembers.find(member => member.reportsTo === null);
+        // Fetch the organizational chart data
+        const response = await axios.get("http://localhost:5000/api/team-structure", {
+          params: { empID: storedEmpID },
+        });
+        
+
+        if (response.data && response.data.orgChart) {
+          setLoggedInUser(response.data.orgChart);
+        } else {
+          console.warn("No organizational chart data received");
+          setLoggedInUser(null);
+        }
+      } catch (error) {
+        console.error("Error fetching team structure:", error);
+      } finally {
+        setLoading(false); // Stop the loading spinner
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <Container>
+        <Sidebar activeTab="Team Structure" />
+        <Content>
+          <Title>Loading Team Structure...</Title>
+        </Content>
+      </Container>
+    );
+  }
 
   return (
     <div>
@@ -119,22 +138,24 @@ const Team = () => {
         <Content>
           <Title>Team Structure</Title>
           <ChartContainer>
-            {teamLead && (
+            {loggedInUser ? (
               <Tree
                 lineWidth={"3px"}
-                lineColor={"#FF7043"}
+                lineColor={"#ff7043"}
                 lineBorderRadius={"10px"}
                 label={
                   <TeamMemberCard>
-                    <TeamMemberName>{teamLead.name}</TeamMemberName>
-                    <TeamMemberDetails>Role: {teamLead.role}</TeamMemberDetails>
-                    <TeamMemberDetails>Employee ID: {teamLead.id}</TeamMemberDetails>
-                    <TeamMemberDetails>Open Tickets: {teamLead.openTickets}</TeamMemberDetails>
+                    <TeamMemberName>{loggedInUser.empName}</TeamMemberName>
+                    <TeamMemberDetails>
+                      Employee ID: {loggedInUser.empID}
+                    </TeamMemberDetails>
                   </TeamMemberCard>
                 }
               >
-                {findSubordinates(teamLead.name).map(subordinate => renderTreeNode(subordinate))}
+                {loggedInUser.children.map((child) => renderTree(child))}
               </Tree>
+            ) : (
+              <p>No team structure available.</p>
             )}
           </ChartContainer>
         </Content>

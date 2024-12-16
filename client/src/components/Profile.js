@@ -313,6 +313,8 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState({});
   const [tickets, setTickets] = useState([]);
+  const [filteredTickets, setFilteredTickets] = useState([]); // State for filtered tickets
+  const [searchTerm, setSearchTerm] = useState(""); // State for search input
   const [statusCounts, setStatusCounts] = useState({});
   const [viewMode, setViewMode] = useState("assignedByMe");
   const [showModal, setShowModal] = useState(false);
@@ -459,6 +461,28 @@ const Dashboard = () => {
     navigate("/ticket");
   };
 
+  // Handle Search
+  const handleSearch = (e) => {
+    const term = e.target.value.toLowerCase();
+    setSearchTerm(term);
+
+    if (!term) {
+      setFilteredTickets(tickets); // Show all tickets when search is cleared
+      return;
+    }
+
+    const filtered = tickets.filter((ticket) =>
+      Object.values(ticket).some((value) => {
+        if (value === null || value === undefined) return false; // Skip null/undefined values
+        if (typeof value !== "string" && typeof value !== "number")
+          return false; // Skip non-string/number fields
+        return value.toString().toLowerCase().includes(term); // Check if term is included
+      })
+    );
+
+    setFilteredTickets(filtered);
+  };
+
   const handleViewModeChange = (mode) => {
     setViewMode(mode);
     fetchTickets(mode, userData.EmpID);
@@ -511,8 +535,10 @@ const Dashboard = () => {
   const handleActionClick = (ticket) => {
     const storedUsername = localStorage.getItem("username");
     const fullEmailUser = `${storedUsername}@premierenergies.com`; // Append domain
-    navigate(`/ticket/${ticket.Ticket_Number}`, { state: { ticket, emailUser: fullEmailUser } });
-  };  
+    navigate(`/ticket/${ticket.Ticket_Number}`, {
+      state: { ticket, emailUser: fullEmailUser },
+    });
+  };
 
   const handleModalSubmit = async () => {
     try {
@@ -595,7 +621,15 @@ const Dashboard = () => {
           </StatusCardGroup>
 
           <ButtonGroup>
-            <SearchIcon />
+            <SearchBar>
+              <SearchIcon />
+              <SearchInput
+                type="text"
+                placeholder="Search Your Tickets"
+                value={searchTerm}
+                onChange={handleSearch}
+              />
+            </SearchBar>
             <Button
               active={viewMode === "assignedByMe"}
               onClick={() => handleViewModeChange("assignedByMe")}
@@ -626,7 +660,7 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {tickets.map((ticket) => (
+              {filteredTickets.map((ticket) => (
                 <tr key={ticket.Ticket_Number}>
                   <TableData>{ticket.Ticket_Number}</TableData>
                   <TableData>

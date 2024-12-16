@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
-import styled from 'styled-components';
-import Sidebar from './Sidebar';
-import { FaSearch } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import styled from "styled-components";
+import Sidebar from "./Sidebar";
+import { FaSearch } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Container = styled.div`
   display: flex;
   min-height: calc(100vh - 70px);
-  background-color: #FFFFFF;
+  background-color: #ffffff;
 `;
 
 const Content = styled.div`
@@ -19,7 +19,7 @@ const Content = styled.div`
 `;
 
 const Title = styled.h1`
-  color: #F57C00;
+  color: #f57c00;
   font-size: 36px;
   margin-bottom: 30px;
   text-align: center;
@@ -36,7 +36,7 @@ const ButtonGroup = styled.div`
 const SearchBar = styled.div`
   display: flex;
   align-items: center;
-  background-color: #F0F0F0;
+  background-color: #f0f0f0;
   border-radius: 25px;
   padding: 10px 20px;
   width: 25%;
@@ -49,12 +49,12 @@ const SearchInput = styled.input`
   outline: none;
   flex: 1;
   font-size: 16px;
-  color: #0F6AB0;
+  color: #0f6ab0;
 `;
 
 const SearchIcon = styled(FaSearch)`
   margin-right: 10px;
-  color: #0F6AB0;
+  color: #0f6ab0;
 `;
 
 const Button = styled.button`
@@ -83,11 +83,11 @@ const TableHeader = styled.th`
   border-bottom: 2px solid #000000;
   padding: 10px;
   text-align: left;
-  background-color: #F0F0F0;
+  background-color: #f0f0f0;
 `;
 
 const TableData = styled.td`
-  border-bottom: 1px solid #CCCCCC;
+  border-bottom: 1px solid #cccccc;
   padding: 10px;
 `;
 
@@ -101,8 +101,8 @@ const CreateTicketButton = styled.button`
   position: absolute;
   top: 20px;
   right: 20px;
-  background-color: #61B847;
-  color: #FFFFFF;
+  background-color: #61b847;
+  color: #ffffff;
   border: none;
   border-radius: 25px;
   padding: 15px 30px;
@@ -112,13 +112,15 @@ const CreateTicketButton = styled.button`
 
 const Priority = () => {
   const [priorityTasks, setPriorityTasks] = useState([]);
+  const [filteredTasks, setFilteredTasks] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("assignedByMe");
   const [userData, setUserData] = useState({});
   const navigate = useNavigate();
 
   const handleCreateTicket = () => {
-    const username = localStorage.getItem('username');
-    navigate('/ticket', { state: { username } });
+    const username = localStorage.getItem("username");
+    navigate("/ticket", { state: { username } });
   };
 
   const handleViewModeChange = (mode) => {
@@ -136,9 +138,12 @@ const Priority = () => {
 
         // Fetch user data if not already fetched
         if (!userData.EmpID) {
-          const userResponse = await axios.get("http://localhost:5000/api/user", {
-            params: { email: storedUsername },
-          });
+          const userResponse = await axios.get(
+            "http://localhost:5000/api/user",
+            {
+              params: { email: storedUsername },
+            }
+          );
           setUserData(userResponse.data);
           return; // Return here so that userData updates and triggers another useEffect run
         }
@@ -154,10 +159,12 @@ const Priority = () => {
         const allTickets = response.data.tickets;
 
         // Filter tickets by priority = High
-        const highPriorityTickets = allTickets.filter(ticket => ticket.Ticket_Priority === 'High');
+        const highPriorityTickets = allTickets.filter(
+          (ticket) => ticket.Ticket_Priority === "High"
+        );
 
         // Map the tickets to a structure similar to what the component expects
-        const formattedTasks = highPriorityTickets.map(ticket => {
+        const formattedTasks = highPriorityTickets.map((ticket) => {
           let deadlineText = "N/A";
           if (ticket.Expected_Completion_Date) {
             const expectedDate = new Date(ticket.Expected_Completion_Date);
@@ -173,7 +180,9 @@ const Priority = () => {
             } else if (daysDiff === 0) {
               deadlineText = "Today";
             } else {
-              deadlineText = `Overdue by ${Math.abs(daysDiff)} day${Math.abs(daysDiff) !== 1 ? "s" : ""}`;
+              deadlineText = `Overdue by ${Math.abs(daysDiff)} day${
+                Math.abs(daysDiff) !== 1 ? "s" : ""
+              }`;
             }
           }
 
@@ -184,7 +193,7 @@ const Priority = () => {
             title: ticket.Ticket_Title,
             priority: ticket.Ticket_Priority,
             assignedBy: ticket.Reporter_Name || "N/A",
-            deadline: deadlineText
+            deadline: deadlineText,
           };
         });
 
@@ -197,17 +206,44 @@ const Priority = () => {
     fetchData();
   }, [navigate, viewMode, userData]);
 
+  // Filter tasks based on search input
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredTasks(priorityTasks);
+      return;
+    }
+
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+    const filtered = priorityTasks.filter((task) =>
+      Object.values(task).some(
+        (value) =>
+          value &&
+          typeof value === "string" &&
+          value.toLowerCase().includes(lowercasedSearchTerm)
+      )
+    );
+
+    setFilteredTasks(filtered);
+  }, [searchTerm, priorityTasks]);
+
   return (
     <div>
       <Container>
         <Sidebar activeTab="Priority Tasks" />
         <Content>
-          <CreateTicketButton onClick={handleCreateTicket}>Create Ticket</CreateTicketButton>
+          <CreateTicketButton onClick={handleCreateTicket}>
+            Create Ticket
+          </CreateTicketButton>
           <Title>Priority Tasks</Title>
           <ButtonGroup>
             <SearchBar>
               <SearchIcon />
-              <SearchInput type="text" placeholder="Search Priority Tasks" />
+              <SearchInput
+                type="text"
+                placeholder="Search Priority Tickets"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </SearchBar>
             <Button
               active={viewMode === "assignedByMe"}
@@ -234,14 +270,16 @@ const Priority = () => {
               </tr>
             </thead>
             <tbody>
-              {priorityTasks.map((task, index) => (
+              {filteredTasks.map((task, index) => (
                 <tr key={index}>
                   <TableData>{task.creationDate}</TableData>
                   <TableData>{task.title}</TableData>
                   <TableData>{task.priority}</TableData>
                   <TableData>{task.assignedBy}</TableData>
                   <TableData>{task.deadline}</TableData>
-                  <TableData><PriorityStar>&#9733;</PriorityStar></TableData>
+                  <TableData>
+                    <PriorityStar>&#9733;</PriorityStar>
+                  </TableData>
                 </tr>
               ))}
             </tbody>

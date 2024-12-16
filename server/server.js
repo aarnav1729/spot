@@ -862,6 +862,71 @@ const insertHistoryRecords = async (changes) => {
   }
 };
 
+// Helper function to get ticket details including reporter and assignee emails
+async function getTicketDetails(ticketNumber) {
+  const ticketRes = await sql.query`
+    SELECT T.*, E.EmpEmail AS ReporterEmail, A.EmpEmail AS AssigneeEmail
+    FROM Tickets T
+    LEFT JOIN EMP E ON T.Reporter_EmpID = E.EmpID
+    LEFT JOIN EMP A ON T.Assignee_EmpID = A.EmpID
+    WHERE T.Ticket_Number = ${ticketNumber}
+  `;
+  if (ticketRes.recordset.length === 0) throw new Error("Ticket not found");
+  return ticketRes.recordset[0];
+}
+
+// Helper function to send emails on status or completion date changes
+async function sendStatusChangeEmail(ticketNumber, changes) {
+  // Get updated ticket details
+  const ticketDetails = await getTicketDetails(ticketNumber);
+
+  // Check which fields changed
+  const changedFields = changes.map((c) => c.Action_Type);
+
+  // If status changed, handle special logic
+  if (changedFields.includes("Status")) {
+    const newStatusChange = changes.find((c) => c.Action_Type === "Status");
+    const newStatus = newStatusChange.After_State;
+
+    if (newStatus === "Resolved") {
+      // Send email to reporter with accept/reject instructions
+      const subject = `Ticket ${ticketNumber} Resolved`;
+      const content = `
+        <p>Your ticket <strong>${ticketNumber}</strong> has been marked as Resolved.</p>
+        <p>Please <strong>login to the system</strong> and Accept or Reject the resolution.</p>
+        <p>If you take no action within 7 days, the ticket will be auto-closed.</p>
+      `;
+      await sendEmail(ticketDetails.ReporterEmail, subject, content);
+    } else if (newStatus === "Closed") {
+      // Email to reporter that ticket is closed
+      const subject = `Ticket ${ticketNumber} Closed`;
+      const content = `<p>Your ticket <strong>${ticketNumber}</strong> is now Closed.</p>`;
+      await sendEmail(ticketDetails.ReporterEmail, subject, content);
+    } else if (newStatus === "In-Progress") {
+      // Ticket reverted back to In-Progress (after rejection)
+      // Notify assignee
+      const subject = `Ticket ${ticketNumber} Resolution Rejected`;
+      const content = `
+        <p>The resolution for ticket <strong>${ticketNumber}</strong> has been rejected by the reporter.</p>
+        <p>Please review and address the issue again.</p>
+      `;
+      await sendEmail(ticketDetails.AssigneeEmail, subject, content);
+    }
+  }
+
+  // If Expected Completion Date changed
+  if (changedFields.includes("Expected Completion Date")) {
+    // Notify assignee or reporter, depending on your business logic.
+    // For example, notify the assignee:
+    const subject = `Ticket ${ticketNumber} Expected Completion Date Updated`;
+    const content = `
+      <p>The expected completion date for ticket <strong>${ticketNumber}</strong> has been updated.</p>
+      <p>Please review the ticket details.</p>
+    `;
+    await sendEmail(ticketDetails.AssigneeEmail, subject, content);
+  }
+}
+
 // Main endpoint handler
 app.post("/api/update-ticket", async (req, res) => {
   try {
@@ -890,6 +955,16 @@ app.post("/api/update-ticket", async (req, res) => {
 
     // Step 5: Insert history records
     await insertHistoryRecords(changes);
+
+    // Step 6: Send emails if status or expected completion date changed
+    const statusOrDateChanged = changes.some(
+      (c) =>
+        c.Action_Type === "Status" ||
+        c.Action_Type === "Expected Completion Date"
+    );
+    if (statusOrDateChanged) {
+      await sendStatusChangeEmail(req.body.Ticket_Number, changes);
+    }
 
     res.status(200).json({ message: "Ticket updated successfully" });
   } catch (error) {
@@ -1104,6 +1179,57 @@ app.get("/api/getHODForDept", async (req, res) => {
     }
   } catch (error) {
     console.error("Error fetching HODID for department:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Endpoint to fetch logged-in user's team structure
+app.get("/api/team-structure", async (req, res) => {
+  const { empID } = req.query;
+
+  if (!empID) {
+    return res.status(400).json({ message: "Employee ID is required" });
+  }
+
+  try {
+    // Fetch details of the logged-in user
+    const userQuery = await sql.query`
+      SELECT EmpID, EmpName, Dept, ManagerID FROM EMP WHERE EmpID = ${empID}
+    `;
+    if (userQuery.recordset.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const loggedInUser = userQuery.recordset[0];
+
+    // Fetch all employees in the same department
+    const departmentQuery = await sql.query`
+      SELECT EmpID, EmpName, ManagerID 
+      FROM EMP 
+      WHERE Dept = ${loggedInUser.Dept}
+    `;
+    const employees = departmentQuery.recordset;
+
+    // Build the organizational chart structure
+    const buildTree = (employees, managerID) => {
+      return employees
+        .filter((emp) => emp.ManagerID === managerID)
+        .map((emp) => ({
+          empID: emp.EmpID,
+          empName: emp.EmpName,
+          children: buildTree(employees, emp.EmpID),
+        }));
+    };
+
+    // Create the hierarchy starting from the user's manager
+    const orgChart = {
+      empID: loggedInUser.EmpID,
+      empName: loggedInUser.EmpName,
+      children: buildTree(employees, loggedInUser.EmpID),
+    };
+
+    res.status(200).json({ orgChart });
+  } catch (error) {
+    console.error("Error fetching team structure:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

@@ -173,6 +173,7 @@ const Login = () => {
 
       // Store user information in localStorage
       localStorage.setItem("username", emailUser);
+      localStorage.setItem("empID", response.data.empID);
 
       console.log(emailUser);
       navigate("/profile");
@@ -231,6 +232,5 @@ const Login = () => {
     </Container>
   );
 };
-
 
 export default Login;

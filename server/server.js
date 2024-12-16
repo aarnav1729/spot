@@ -905,9 +905,9 @@ async function sendStatusChangeEmail(ticketNumber, changes) {
     } else if (newStatus === "In-Progress") {
       // Ticket reverted back to In-Progress (after rejection)
       // Notify assignee
-      const subject = `Ticket ${ticketNumber} Resolution Rejected`;
+      const subject = `Ticket ${ticketNumber} has been re-opened`;
       const content = `
-        <p>The resolution for ticket <strong>${ticketNumber}</strong> has been rejected by the reporter.</p>
+        <p>The resolution for ticket <strong>${ticketNumber}</strong> has not been accepted by the reporter.</p>
         <p>Please review and address the issue again.</p>
       `;
       await sendEmail(ticketDetails.AssigneeEmail, subject, content);
@@ -921,6 +921,24 @@ async function sendStatusChangeEmail(ticketNumber, changes) {
     const subject = `Ticket ${ticketNumber} Expected Completion Date Updated`;
     const content = `
       <p>The expected completion date for ticket <strong>${ticketNumber}</strong> has been updated.</p>
+      <p>Please review the ticket details.</p>
+    `;
+    await sendEmail(ticketDetails.AssigneeEmail, subject, content);
+  }
+
+  // If Assignee changed
+  const assigneeFields = [
+    "Assignee Department",
+    "Assignee Sub-Department",
+    "Assignee Employee",
+  ];
+  const assigneeChanged = changedFields.some((field) =>
+    assigneeFields.includes(field)
+  );
+  if (assigneeChanged) {
+    const subject = `Ticket ${ticketNumber} Assignee Updated`;
+    const content = `
+      <p>The assignee for ticket <strong>${ticketNumber}</strong> has been updated.</p>
       <p>Please review the ticket details.</p>
     `;
     await sendEmail(ticketDetails.AssigneeEmail, subject, content);
@@ -956,13 +974,16 @@ app.post("/api/update-ticket", async (req, res) => {
     // Step 5: Insert history records
     await insertHistoryRecords(changes);
 
-    // Step 6: Send emails if status or expected completion date changed
-    const statusOrDateChanged = changes.some(
+    // Step 6: Send emails if status or expected completion date changed, or if assignee updated
+    const statusOrDateOrAssigneeChanged = changes.some(
       (c) =>
         c.Action_Type === "Status" ||
-        c.Action_Type === "Expected Completion Date"
+        c.Action_Type === "Expected Completion Date" ||
+        c.Action_Type === "Assignee Department" ||
+        c.Action_Type === "Assignee Sub-Department" ||
+        c.Action_Type === "Assignee Employee"
     );
-    if (statusOrDateChanged) {
+    if (statusOrDateOrAssigneeChanged) {
       await sendStatusChangeEmail(req.body.Ticket_Number, changes);
     }
 

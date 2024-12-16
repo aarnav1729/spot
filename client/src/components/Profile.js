@@ -540,6 +540,10 @@ const Dashboard = () => {
     });
   };
 
+  useEffect(() => {
+    setFilteredTickets(tickets); // Sync filteredTickets with tickets
+  }, [tickets]);
+
   const handleModalSubmit = async () => {
     try {
       const updatedTicketData = {

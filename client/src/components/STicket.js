@@ -487,15 +487,15 @@ const STicket = () => {
                         }
                       );
                       alert(
-                        "Resolution rejected. Ticket will be marked as In-Progress."
+                        "Ticket re-opened. Ticket will be marked as In-Progress."
                       );
                       navigate("/profile");
                     } catch (error) {
-                      console.error("Error rejecting resolution:", error);
+                      console.error("Error re-opening ticket:", error);
                     }
                   }}
                 >
-                  Reject Resolution
+                  Reopen Ticket
                 </button>
               </div>
             )}
